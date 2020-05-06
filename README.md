@@ -35,3 +35,9 @@ This parser will trigger events:
 * any time the function *_sub_event* is called  
   
 You can also add the function anywhere in code to create another event
+
+### Entities:  
+  
+Every entity has some properties of its own and some other properties stored in another entitiy called *CCSPlayerResource*  
+Entities class has a function to [find properties by name](https://github.com/ZaharX97/CSGOdemoPythonParser/blob/master/structures.py#L202) since, for example, the kills for player1 are stored in *CCSPlayerResource* entity > *m_iKills* table > *001* key  
+You can call *entity.find("kill")* and get a dictioary of all keys that have *kill* in their name  
