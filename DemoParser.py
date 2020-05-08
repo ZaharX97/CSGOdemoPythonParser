@@ -224,7 +224,7 @@ class DemoParser:
                     user_data = _buf.readBits(size * 8)
                 if uinfo:
                     user_data = UserInfo(user_data)
-                    self._update_pinfo(user_data)
+                    self._update_pinfo(user_data, res.data[index]["entry"])
                 res.data[index]["user_data"] = user_data
             if len(history) == 32:
                 history.pop(0)
@@ -339,9 +339,11 @@ class DemoParser:
         if self._match_started:
             self._round_current += 1
         print("ROUND {}..........................................................".format(self._round_current))
-        if self._round_current == 7:
-            p.print_players_userinfo(self.dump, self._players_userinfo)
-            p.print_entities(self.dump, self._entities)
+        # if self._round_current == 2:
+        #     print(len(self.get_player_entities()))
+        #     p.print_userinfo(self.dump, self._string_tables_list)
+        #     p.print_players_userinfo(self.dump, self._players_userinfo)
+        #     p.print_entities(self.dump, self._entities)
 
     # NO MORE EVENTS HANDLERS <
 
@@ -446,23 +448,22 @@ class DemoParser:
                 excl.extend(self._get_excl_props(sub_table))
         return excl
 
-    def _update_pinfo(self, data):
+    def _update_pinfo(self, data, entry):
         self._sub_event("parser_update_pinfo", data)
         if data.guid != "BOT":
-            exist = None
-            for x in self._players_userinfo.items():
-                if data.xuid == x[1].xuid:
-                    exist = x[0]
-                    break
-            if exist:
-                self._players_userinfo.update({exist: data})
-                if exist != data.user_id:
-                    self._players_userinfo.update({data.user_id: self._players_userinfo[exist]})
-                    self._players_userinfo.pop(exist)
-                self._sub_event("parser_old_player_connected", data)
-            else:
-                self._sub_event("parser_new_player_connected", data)
-                self._players_userinfo.update({data.user_id: data})
+            self._players_userinfo.update({entry: data})
+            # exist = None
+            # for x in self._players_userinfo.items():
+            #     if data.xuid == x[1].xuid:
+            #         exist = x[0]
+            #         break
+            # if exist:
+            #     self._players_userinfo.update({exist: data})
+            #     if exist != data.user_id:
+            #         self._players_userinfo.update({data.user_id: self._players_userinfo[exist]})
+            #         self._players_userinfo.pop(exist)
+            # else:
+            #     self._players_userinfo.update({data.user_id: data})
             # self._max_players = len(self._players_userinfo)
 
     def _update_cmd_counter(self, value, cmd=False, msg=False, ev=False):
@@ -496,3 +497,35 @@ class DemoParser:
             # p.print_userinfo(self.dump, self._string_tables_list)
             p.print_players_userinfo(self.dump, self._players_userinfo)
             # p.print_entities(self.dump, self._entities)
+
+    #  OTHER FUNCTIONS >
+
+    def get_player_entities(self, bots=False):
+        ret = list()
+        for x in self._string_tables_list:
+            if x.name == "userinfo":
+                for x2 in x.data:
+                    ud = x2["user_data"]
+                    entry = x2["entry"]
+                    if not ud or not entry:
+                        continue
+                    if not bots and ud.guid == "BOT":
+                        continue
+                    y = self._entities.get(int(x2["entry"]) + 1)
+                    if y:
+                        ret.append(y)
+        return ret
+
+    def get_team_entities(self, all4=False):
+        ret = list()
+        all4 = 0 if all4 else 2
+        for x in self._entities.values():
+            if x and x.class_name == "CCSTeam":
+                if x.get_prop("m_iTeamNum") >= all4:
+                    ret.append(x)
+        return ret
+
+    def get_resource_table(self):
+        for x in self._entities.values():
+            if x and x.class_name == "CCSPlayerResource":
+                return x

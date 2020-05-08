@@ -226,6 +226,25 @@ class Entity:
                     return key[1]
         return None
 
+    def is_player(self):
+        #  entity id = userinfo key + 1
+        #  in resource table, player is entityid.zfill(3)
+        for x in self.parser._string_tables_list:
+            if x.name == "userinfo":
+                for x2 in x.data:
+                    if x2["entry"] + 1 == self.entity_id:
+                        return True
+                return False
+
+    def get_userinfo(self):
+        for x in self.parser._string_tables_list:
+            if x.name == "userinfo":
+                for x2 in x.data:
+                    if x2["entry"] + 1 == self.entity_id:
+                        return x2["user_data"]
+                return None
+
+
 # EVENT
 # name
 # eventid
