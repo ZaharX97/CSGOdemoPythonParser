@@ -120,13 +120,12 @@ class DemoParser:
             elif cmd == c.DEM_STOP:  # 7
                 self._sub_event("cmd_dem_stop", None)
                 # print(self.progress, "%  >DEMO ENDED<")
+                print("MATCH ENDED.....................................................................")
                 demo_finished = True
             else:
                 demo_finished = True
                 print("Demo command not recognised: ", cmd)
         self._demo_ended_stuff()
-        extra_data = dict()
-        extra_data.update({"file": self.dump})
         self._sub_event("parser_demo_finished_print", self.dump)
         self._sub_event("parser_demo_finished", None)
         if self.dump:
@@ -328,7 +327,7 @@ class DemoParser:
     def _my_begin_new_match(self, data):
         # pass
         self._match_started = True
-        # print("MATCH STARTED.....................................................................")
+        print("MATCH STARTED.....................................................................")
 
     def _my_round_end(self, data):
         pass
@@ -339,8 +338,9 @@ class DemoParser:
         # pass
         if self._match_started:
             self._round_current += 1
-        # print("ROUND {}..........................................................".format(self._round_current))
+        print("ROUND {}..........................................................".format(self._round_current))
         # if self._round_current == 7:
+        #     p.print_players_userinfo(self.dump, self._players_userinfo)
         #     p.print_entities(self.dump, self._entities)
 
     # NO MORE EVENTS HANDLERS <
