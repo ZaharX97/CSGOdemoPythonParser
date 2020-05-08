@@ -339,9 +339,9 @@ class DemoParser:
         if self._match_started:
             self._round_current += 1
         print("ROUND {}..........................................................".format(self._round_current))
-        # if self._round_current == 7:
-        #     p.print_players_userinfo(self.dump, self._players_userinfo)
-        #     p.print_entities(self.dump, self._entities)
+        if self._round_current == 7:
+            p.print_players_userinfo(self.dump, self._players_userinfo)
+            p.print_entities(self.dump, self._entities)
 
     # NO MORE EVENTS HANDLERS <
 

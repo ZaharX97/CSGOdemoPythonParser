@@ -127,8 +127,8 @@ class Bitbuffer:
 
     # Read signed n-bits
     def read_sint_bits(self, a_bits):
-        return self._get_signed_nr(self.read_uint_bits(a_bits), a_bits)
-        # return (self.read_uint_bits(a_bits) << (32 - a_bits)) >> (32 - a_bits)
+        # return self._get_signed_nr(self.read_uint_bits(a_bits), a_bits)
+        return (self.read_uint_bits(a_bits) << (32 - a_bits)) >> (32 - a_bits)
 
     # Read string
     def read_string(self, length=0):
@@ -233,6 +233,7 @@ class Bitbuffer:
                     #     print(ret, 2 ** prop.num_bits - ret, bin(ret), prop.num_bits)
             else:
                 ret = self.read_sint_bits(prop.num_bits)
+                ret = self._get_signed_nr(ret, prop.num_bits)
         return ret
 
     def _decode_float(self, prop):
