@@ -1,6 +1,6 @@
 # CSGO Demoparser in python
 
-A CSGO .dem file parser in python
+A CSGO .dem (demo) file parser in python
 
 ## Thanks to
 1. (https://github.com/ValveSoftware/csgo-demoinfo)
@@ -10,6 +10,8 @@ A CSGO .dem file parser in python
 5. (https://github.com/SteamDatabase/GameTracking-CSGO)  
   
 Without looking (and copying :D) at other projects it would have been impossible for me to understand how csgo demos work.  
+  
+This is not as fast or good as the one written in golang, but I needed one in python and couldnt find any.  
 
 ## To use this:
 ```python
