@@ -10,7 +10,6 @@ A CSGO .dem file parser in python
 5. (https://github.com/SteamDatabase/GameTracking-CSGO)  
   
 Without looking (and copying :D) at other projects it would have been impossible for me to understand how csgo demos work.  
-Well, I still need to understand how to parse entities... whatever
 
 ## To use this:
 ```python
