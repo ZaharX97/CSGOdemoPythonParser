@@ -6,6 +6,9 @@ tickrate = 0
 current_tick = 0
 file = None
 sec_threshold = 0
+round_start_tick = 0
+round_timer = 0
+max_round_time = 115
 
 
 def player_blind(data):
@@ -21,11 +24,17 @@ def player_blind(data):
         v.lastflashdur = time
         v.lastflashtick = current_tick
         if v.start_team == a.start_team:
-            file.write("TF > {} flashed {} for {}s\n".format(a.name, v.name, time))
+            if max_round_time == 40:
+                file.write("BOMB ")
+            file.write("{}:{} / ".format(int(round_timer / 60), str(int(round_timer % 60)).zfill(2)))
+            file.write("Team Flash > {} flashed {} for {}s\n".format(a.name, v.name, time))
             a.teamflashes += 1
             a.teamflashesduration += time
         else:
-            file.write("EF > {} flashed {} for {}s\n".format(a.name, v.name, time))
+            if max_round_time == 40:
+                file.write("BOMB ")
+            file.write("{}:{} / ".format(int(round_timer / 60), str(int(round_timer % 60)).zfill(2)))
+            file.write("Enemy Flash > {} flashed {} for {}s\n".format(a.name, v.name, time))
             a.enemyflashes += 1
             a.enemyflashesduration += time
 
@@ -39,11 +48,17 @@ def player_death(data):
         if not d.flashedby:
             return
         if d.start_team == d.flashedby.start_team:
-            file.write("TD > {} died flashed by {}\n".format(d.name, d.flashedby.name))
-            d.flashedby.ftotd += 1
+            if max_round_time == 40:
+                file.write("BOMB ")
+            file.write("{}:{} / ".format(int(round_timer / 60), str(int(round_timer % 60)).zfill(2)))
+            file.write("Team Death > {} died flashed by {}\n".format(d.name, d.flashedby.name))
+            d.flashedby.ftotd.append(round_current)
         else:
-            file.write("ED > {} died flashed by {}\n".format(d.name, d.flashedby.name))
-            d.flashedby.ftoed += 1
+            if max_round_time == 40:
+                file.write("BOMB ")
+            file.write("{}:{} / ".format(int(round_timer / 60), str(int(round_timer % 60)).zfill(2)))
+            file.write("Enemy Death > {} died flashed by {}\n".format(d.name, d.flashedby.name))
+            d.flashedby.ftoed.append(round_current)
 
 
 def player_team(data):
@@ -114,14 +129,15 @@ def begin_new_match(data):
 
 
 def round_officially_ended(data):
-    global match_started, round_current, file
+    global match_started, round_current, file, max_round_time
     if match_started:
         # STATS.update({round_current: MyRoundStats(team_score[2], team_score[3], PLAYERS)})
         round_current += 1
+        max_round_time = 115
+        for p in PLAYERS_BY_UID.values():
+            if p:
+                p.dead = False
     file.write("\nROUND {}..........................................................\n".format(round_current))
-    for p in PLAYERS_BY_UID.values():
-        if p:
-            p.dead = False
     # print("ROUND {}..........................................................".format(round_current))
 
 
@@ -163,6 +179,22 @@ def new_demo(data):
     PLAYERS_BY_UID = dict()
 
 
+def round_fr_end(data):
+    global round_start_tick
+    round_start_tick = current_tick
+
+
+def bomb_planted(data):
+    global round_start_tick, max_round_time
+    max_round_time = 40
+    round_start_tick = current_tick
+
+
+def hostage_follows(data):
+    global max_round_time
+    max_round_time += 60
+
+
 def print_end_stats(data):
     global file
     data1 = sorted(PLAYERS_BY_UID.values(), key=lambda x: x.teamflashesduration, reverse=True)
@@ -171,18 +203,29 @@ def print_end_stats(data):
     for p in data1:
         file.write("{} blinded teammates {} ".format(fix_len_string(p.name, 20), fix_len_string(p.teamflashes, 2)))
         file.write("times for {}s ".format(fix_len_string(round(p.teamflashesduration, 2), 5)))
-        file.write("resulting in {} team deaths\n".format(fix_len_string(p.ftotd, 2)))
+        file.write("resulting in {} team deaths".format(fix_len_string(len(p.ftotd), 2)))
+        if len(p.ftotd):
+            file.write(" in rounds: ")
+            for r in p.ftotd:
+                file.write("{}, ".format(r))
+        file.write("\n")
     file.write("\nENEMY FLASH STATS:\n\n")
     for p in data2:
         file.write("{} blinded enemies {} ".format(fix_len_string(p.name, 20), fix_len_string(p.enemyflashes, 2)))
         file.write("times for {}s ".format(fix_len_string(round(p.enemyflashesduration, 2), 5)))
-        file.write("resulting in {} enemy deaths\n".format(fix_len_string(p.ftoed, 2)))
+        file.write("resulting in {} enemy deaths".format(fix_len_string(len(p.ftoed), 2)))
+        if len(p.ftoed):
+            file.write(" in rounds: ")
+            for r in p.ftoed:
+                file.write("{}, ".format(r))
+        file.write("\n")
 
 
 def get_entities(data):
-    global current_tick
+    global current_tick, round_timer
     # PLAYER_ENTITIES.clear()
     current_tick = data[1]
+    round_timer = round(max_round_time - ((current_tick - round_start_tick) / tickrate), 2)
     for p in PLAYERS_BY_UID.values():
         # PLAYER_ENTITIES.update({p.userinfo.entity_id: data[0].get(p.userinfo.entity_id)})
         # if PLAYER_ENTITIES.get(p.userinfo.entity_id) and PLAYER_ENTITIES[p.userinfo.entity_id].get_prop("m_flFlashMaxAlpha"):
@@ -218,8 +261,8 @@ class MyPlayer:
         self.enemyflashes = 0
         self.teamflashesduration = 0
         self.enemyflashesduration = 0
-        self.ftotd = 0
-        self.ftoed = 0
+        self.ftotd = list()
+        self.ftoed = list()
         self.flashedby = None
         self.lastflashdur = 0
         self.lastflashtick = 0
