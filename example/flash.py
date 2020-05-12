@@ -128,7 +128,7 @@ def analyze_demo(path):
     try:
         parser.parse()
     except Exception:
-        AlertWindow(app.window, "Error analyzing video")
+        AlertWindow(app.window, "Error analyzing demo")
     app.status.text.set("done / waiting")
     app.status.frame.config(fg="#33ccff")
     ff.file.close()
