@@ -77,7 +77,7 @@ class MainWindow:
         frame = tk.Frame(self.window, bg="#101010")
         x = MyButtonStyle(frame, "Analyze", cmd=lambda: get_demo_path())
         x.btn.pack(side=tk.LEFT, padx=5, pady=2)
-        x = MyButtonStyle(frame, "flash.txt", cmd=open_results)
+        x = MyButtonStyle(frame, "flashes.txt", cmd=open_results)
         x.btn.pack(side=tk.RIGHT, padx=5, pady=2)
         frame.pack()
 
@@ -125,7 +125,10 @@ def analyze_demo(path):
     parser.subscribe_to_event("parser_update_pinfo", ff.update_pinfo)
     parser.subscribe_to_event("cmd_dem_stop", ff.match_ended)
     parser.subscribe_to_event("cmd_dem_stop", ff.print_end_stats)
-    parser.parse()
+    try:
+        parser.parse()
+    except Exception:
+        AlertWindow(app.window, "Error analyzing video")
     app.status.text.set("done / waiting")
     app.status.frame.config(fg="#33ccff")
     ff.file.close()
