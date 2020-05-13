@@ -31,7 +31,7 @@ You need to register some functions to use when certain events happen
 Check [this file](https://github.com/ZaharX97/CSGOdemoPythonParser/blob/master/example/round_stats.py)  
   
 This parser will trigger events:  
-* every time a [game event](https://github.com/ZaharX97/CSGOdemoPythonParser/blob/master/example/dump_with_player_entities.txt#L1146)  
+* every time a [game event](https://github.com/ZaharX97/CSGOdemoPythonParser/blob/master/example/dump_with_player_entities.txt#L1146) happens  
 * every demo packet message  
 * any time the function *_sub_event* is called  
   
