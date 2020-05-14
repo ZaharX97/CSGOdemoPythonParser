@@ -160,6 +160,7 @@ class UserInfo:
         self.files_downloaded = struct.unpack(">B", buf.read(1))[0]
         self.entity_id = struct.unpack(">I", buf.read(4))[0]
         self.tbd = struct.unpack(">I", buf.read(4))[0]
+        self.eid = None
         del buf
 
 
@@ -186,7 +187,8 @@ class ServerClass:
 class Entity:
     def __init__(self, parser, entity_id, cls_id, serial, parse=True):
         self.class_id = cls_id
-        self.class_name = parser._serv_class_dict[cls_id].name
+        if cls_id:
+            self.class_name = parser._serv_class_dict[cls_id].name
         self.parse = parse
         if parse:
             self.parser = parser

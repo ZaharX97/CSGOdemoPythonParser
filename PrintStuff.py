@@ -89,3 +89,18 @@ def print_entities(file, data):
             for x3 in x2[1].items():
                 file.write("{} = {} // ".format(x3[0], x3[1]))
     file.write("\n")
+
+
+def print_one_entity(file, data):
+    file.write("\n\nENTITY #{}: {} //".format(data.entity_id, data.class_name))
+    for x2 in data.props.items():
+        file.write("\n....{} //\n........".format(x2[0]))
+        for x3 in x2[1].items():
+            file.write("{} = {} // ".format(x3[0], x3[1]))
+    file.write("\n")
+
+
+def print_one_prop(file, data):
+    for item in data.items():
+        file.write("{} = {} // ".format(item[0], item[1]))
+    file.write("\n")

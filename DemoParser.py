@@ -1,4 +1,5 @@
 import math
+import threading as t
 
 import NETMSG_pb2 as pbuf
 import PrintStuff as p
@@ -29,12 +30,14 @@ class DemoParser:
                 self._ent_set.add("CCSPlayer")
                 self._ent_set.add("CCSTeam")
                 self._ent_set.add("CCSPlayerResource")
+                self._ent_set.add("CCSGameRulesProxy")
                 if self._ent_set == "P+G":
                     self._ent_set.add("CBaseCSGrenadeProjectile")
         if dump:
             self.dump = open(dump, "w", encoding="utf-8")
             self._counter = [[], [], []]
 
+        # self.subscribe_to_event("gevent_player_death", self._my_player_death)
         self.subscribe_to_event("gevent_begin_new_match", self._my_begin_new_match)
         self.subscribe_to_event("gevent_round_end", self._my_round_end)
         self.subscribe_to_event("gevent_round_officially_ended", self._my_round_officially_ended)
@@ -52,10 +55,11 @@ class DemoParser:
         self._string_tables_list = list()
         self._class_bits = None
         self._entities = dict()
-        self._players_userinfo = dict()
+        self._players_by_uid = dict()
         self.progress = 0
         self._match_started = False
         self._round_current = 1
+        self.opr = False
 
     def subscribe_to_event(self, event: str, func: object):
         fncs = self._subscribers.get(event)
@@ -95,9 +99,14 @@ class DemoParser:
         assert self.header.header == "HL2DEMO"
         self._sub_event("parser_start", self.header)
         demo_finished = False
+        old_tick = 0
         while not demo_finished:
             command_header = CommandHeader(self._buf.read(6))
             tick = command_header.tick
+            if tick != old_tick:
+                self._sub_event("parser_new_tick", tick)
+                old_tick = tick
+            # print(command_header.tick, command_header.command, command_header.player)
             self.progress = round(tick / self.header.ticks * 100, 2)
             cmd = command_header.command
             # self.dump.write("cmd= {}\n".format(cmd))
@@ -108,10 +117,12 @@ class DemoParser:
             elif cmd in (c.DEM_SYNCTICK, c.DEM_CUSTOMDATA):  # 3 and 8
                 pass
             elif cmd == c.DEM_CONSOLECMD:  # 4
-                pass
+                self._handle_consolecmd()
+                # pass
                 # self.read_raw_data(None, 0)
             elif cmd == c.DEM_USERCMD:  # 5
-                pass
+                self._handle_usercmd()
+                # pass
                 # self.handle_usercmd(None, 0)
             elif cmd == c.DEM_DATATABLES:  # 6
                 self._handle_datatables()
@@ -124,10 +135,10 @@ class DemoParser:
                 demo_finished = True
             else:
                 demo_finished = True
-                print("Demo command not recognised: ", cmd)
+                raise Exception("Demo command not recognised: {}".format(cmd))
         self._demo_ended_stuff()
         self._sub_event("parser_demo_finished_print", self.dump)
-        self._sub_event("parser_demo_finished", None)
+        # self._sub_event("parser_demo_finished", None)
         if self.dump:
             self.dump.close()
         return
@@ -224,7 +235,9 @@ class DemoParser:
                     user_data = _buf.readBits(size * 8)
                 if uinfo:
                     user_data = UserInfo(user_data)
-                    self._update_pinfo(user_data, res.data[index]["entry"])
+                    user_data.entity_id = int(res.data[index]["entry"]) + 1
+                    self._sub_event("parser_update_pinfo", user_data)
+                    # self._update_pinfo(user_data, res.data[index]["entry"])
                 res.data[index]["user_data"] = user_data
             if len(history) == 32:
                 history.pop(0)
@@ -235,6 +248,7 @@ class DemoParser:
                     self._pending_baselines_dict.update({cls_id: user_data})
                 else:
                     self._baselines_dict.update({cls_id: self._get_baseline(user_data, cls_id)})
+        # print("PB", sorted(self._pending_baselines_dict.keys()))
 
     def _mypkt_svc_UpdateStringTable(self, data):
         msg = pbuf.CSVCMsg_UpdateStringTable()
@@ -271,9 +285,7 @@ class DemoParser:
             elif typed == 8:
                 key_val = msg.keys[i].val_wstring
             else:
-                key_val = None
-                print("UNKNOWN >", msg.keys[i])
-                assert key_val is not None
+                raise Exception("UNKNOWN GameEvent Key Type: {}".format(msg.keys[i]))
             args.update({key_name: key_val})
         self._sub_event("gevent_" + self._game_events_dict[msg.eventid].name, args)
 
@@ -287,6 +299,8 @@ class DemoParser:
             assert (0 <= entity_id <= (1 << c.MAX_EDICT_BITS)), "Entity id: {} < out of range".format(entity_id)
             if buf.read_bit():
                 self._entities.update({entity_id: None})
+                # if self._entities.get(entity_id):
+                #     self._entities.pop(entity_id)
                 buf.read_bit()
             elif buf.read_bit():
                 cls_id = buf.read_uint_bits(self._class_bits)
@@ -324,9 +338,17 @@ class DemoParser:
 
     # EVENTS HANDLERS >
 
+    def _my_player_death(self, data):
+        pass
+        # if not self.opr:
+        #     p.print_entities(self.dump, self._entities)
+        #     self.dump.write("\n.........................................................................................................................................................................................\n")
+        #     self.opr = True
+
     def _my_begin_new_match(self, data):
         # pass
         self._match_started = True
+        # self.opr = False
         print("MATCH STARTED.....................................................................")
 
     def _my_round_end(self, data):
@@ -338,12 +360,10 @@ class DemoParser:
         # pass
         if self._match_started:
             self._round_current += 1
+            # self.opr = False
+        # if self._round_current == 30:
+        #     p.print_one_entity(self.dump, self.get_resource_table())
         print("ROUND {}..........................................................".format(self._round_current))
-        # if self._round_current == 2:
-        #     print(len(self.get_player_entities()))
-        #     p.print_userinfo(self.dump, self._string_tables_list)
-        #     p.print_players_userinfo(self.dump, self._players_userinfo)
-        #     p.print_entities(self.dump, self._entities)
 
     # NO MORE EVENTS HANDLERS <
 
@@ -449,9 +469,8 @@ class DemoParser:
         return excl
 
     def _update_pinfo(self, data, entry):
-        self._sub_event("parser_update_pinfo", data)
         if data.guid != "BOT":
-            self._players_userinfo.update({entry: data})
+            self._players_by_uid.update({data.user_id: data})
             # exist = None
             # for x in self._players_userinfo.items():
             #     if data.xuid == x[1].xuid:
@@ -491,11 +510,12 @@ class DemoParser:
 
     def _demo_ended_stuff(self):
         if self.dump:
+            p.print_one_entity(self.dump, self.get_resource_table())
             p.print_header(self.dump, self.header)
             p.print_event_list(self.dump, self._game_events_dict)
             p.print_counter(self.dump, self._counter)
-            # p.print_userinfo(self.dump, self._string_tables_list)
-            p.print_players_userinfo(self.dump, self._players_userinfo)
+            p.print_userinfo(self.dump, self._string_tables_list)
+            # p.print_players_userinfo(self.dump, self._players_by_uid)
             # p.print_entities(self.dump, self._entities)
 
     #  OTHER FUNCTIONS >
@@ -529,3 +549,14 @@ class DemoParser:
         for x in self._entities.values():
             if x and x.class_name == "CCSPlayerResource":
                 return x
+
+    def _handle_consolecmd(self):
+        length = self._buf.read_int()
+        data = self._buf.read(length)
+        # print(data)
+
+    def _handle_usercmd(self):
+        length = self._buf.read_int()
+        length = self._buf.read_int()
+        data = self._buf.read(length)
+        # print(data)
