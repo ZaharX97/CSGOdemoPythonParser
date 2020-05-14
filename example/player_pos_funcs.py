@@ -33,8 +33,9 @@ def print_player_positions(data):
         return
     for player in PLAYERS:
         pos = player.entity.get_table("DT_CSLocalPlayerExclusive")
+        posZ = player.entity.get_table("DT_LocalPlayerExclusive")["m_vecViewOffset[2]"]
         dump_file.write("{} is at x: {} / ".format(player.userinfo.name, pos["m_vecOrigin"]["x"]))
-        dump_file.write("y: {} / z: {}\n".format(pos["m_vecOrigin"]["y"], pos["m_vecOrigin[2]"]))
+        dump_file.write("y: {} / z: {}\n".format(pos["m_vecOrigin"]["y"], pos["m_vecOrigin[2]"] + posZ))
     dump_file.write("\n")
 
 
