@@ -14,6 +14,10 @@ Without looking (and copying :D) at other projects it would have been impossible
 This is not as fast or good as the one written in golang, but I needed one in python and couldnt find any.  
 
 ## To use this:
+```cmd
+pip install protobuf
+```
+
 ```python
 import DemoParser
 parser = DemoParser(path_to_demo, dump=path_to_dumpfile, ent="ALL")
